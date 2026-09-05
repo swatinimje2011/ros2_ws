@@ -8,6 +8,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rcl_interfaces REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core videoio)
 find_package(sensor_msgs REQUIRED)
 
 add_executable(camera_node
@@ -18,14 +20,32 @@ ament_target_dependencies(camera_node
   rclcpp
 )
 
+add_library(webcam_capture
+  src/webcam_capture.cpp
+)
+
+target_include_directories(webcam_capture PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(webcam_capture
+  ${OpenCV_LIBS}
+)
+
 add_executable(image_publisher
   src/image_publisher.cpp
 )
 
 ament_target_dependencies(image_publisher
+  cv_bridge
   rclcpp
   rcl_interfaces
   sensor_msgs
+)
+
+target_link_libraries(image_publisher
+  webcam_capture
 )
 
 add_executable(image_subscriber
@@ -38,10 +58,15 @@ ament_target_dependencies(image_subscriber
 )
 
 install(TARGETS
+  webcam_capture
   camera_node
   image_publisher
   image_subscriber
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY include/
+  DESTINATION include
 )
 
 ament_package()

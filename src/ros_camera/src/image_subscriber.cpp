@@ -12,7 +12,7 @@ public:
     {
         topic_name_ = this->declare_parameter<std::string>("topic_name", "camera/image_raw");
         subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-            topic_name_, 10,
+            topic_name_, rclcpp::SensorDataQoS(),
             [this](sensor_msgs::msg::Image::ConstSharedPtr image) { handle_image(image); });
         RCLCPP_INFO(this->get_logger(), "Subscribing to '%s'", topic_name_.c_str());
     }
