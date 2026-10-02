@@ -15,6 +15,37 @@ source install/setup.bash
 
 If `colcon` is not installed, install it with `sudo apt install python3-colcon-common-extensions`.
 
+## Run the camera and image processing nodes
+
+Open two terminals in the workspace. In each terminal, source ROS 2 and the
+workspace setup files:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+```
+
+Start the webcam publisher:
+
+```bash
+ros2 run ros_camera camera_node
+```
+
+In the second terminal, start threshold processing and display:
+
+```bash
+ros2 run ros_camera imageProcessing_node
+```
+
+`camera_node` publishes images on `camera/image_raw`. `imageProcessing_node`
+subscribes to that topic, converts each frame to grayscale, applies a 5×5 Gaussian
+blur, then runs the OpenCV Canny edge detector with thresholds `50` and `150`. It
+displays the edge image in an OpenCV window. The display requires a graphical
+desktop. The node publishes the image processing duration in milliseconds as
+`std_msgs/msg/Float64` on `image_processing/processing_time_ms`. Observe it with
+`ros2 topic echo /image_processing/processing_time_ms`. Stop either node with
+`Ctrl+C`.
+
 ## Run the image publisher, subscriber, and viewer
 
 Open three terminals in the workspace. In each terminal, source the ROS and
