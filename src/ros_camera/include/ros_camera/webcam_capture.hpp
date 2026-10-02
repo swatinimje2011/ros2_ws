@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <opencv2/core/mat.hpp>
 #include <opencv2/videoio.hpp>
 
@@ -9,8 +11,8 @@ namespace ros_camera
 struct WebcamConfig
 {
     int device_index{0};
-    int width{640};
-    int height{480};
+    int width{0};
+    int height{0};
     double fps{10.0};
 };
 
@@ -28,6 +30,8 @@ public:
 
 private:
     cv::VideoCapture capture_;
+    std::atomic<int> actual_width_{0};
+    std::atomic<int> actual_height_{0};
 };
 
 }  // namespace ros_camera

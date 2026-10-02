@@ -28,13 +28,13 @@ public:
         topic_name_ = this->declare_parameter<std::string>("topic_name", "camera/image_raw");
         frame_id_ = this->declare_parameter<std::string>("frame_id", "camera_frame");
         camera_config_.device_index = this->declare_parameter<int>("camera_index", 0);
-        camera_config_.width = this->declare_parameter<int>("width", 640);
-        camera_config_.height = this->declare_parameter<int>("height", 480);
+        camera_config_.width = this->declare_parameter<int>("width", 0);
+        camera_config_.height = this->declare_parameter<int>("height", 0);
         camera_config_.fps = this->declare_parameter<double>("publish_rate_hz", 10.0);
 
         if (!is_valid(camera_config_)) {
             throw std::invalid_argument(
-                "camera_index must be non-negative; width, height, and publish_rate_hz must be positive");
+                "camera_index, width, and height must be non-negative; publish_rate_hz must be positive");
         }
 
         publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
@@ -67,7 +67,7 @@ public:
 private:
     static bool is_valid(const ros_camera::WebcamConfig & config)
     {
-        return config.device_index >= 0 && config.width > 0 && config.height > 0 &&
+        return config.device_index >= 0 && config.width >= 0 && config.height >= 0 &&
                std::isfinite(config.fps) && config.fps > 0.0;
     }
 
@@ -90,12 +90,12 @@ private:
                 proposed_config.device_index = static_cast<int>(parameter.as_int());
             } else if (parameter.get_name() == "width") {
                 if (!is_integer(parameter)) {
-                    return rejected("width must be a positive integer");
+                    return rejected("width must be a non-negative integer");
                 }
                 proposed_config.width = static_cast<int>(parameter.as_int());
             } else if (parameter.get_name() == "height") {
                 if (!is_integer(parameter)) {
-                    return rejected("height must be a positive integer");
+                    return rejected("height must be a non-negative integer");
                 }
                 proposed_config.height = static_cast<int>(parameter.as_int());
             } else if (parameter.get_name() == "publish_rate_hz") {
@@ -115,7 +115,7 @@ private:
 
         if (!is_valid(proposed_config)) {
             return rejected(
-                "camera_index must be non-negative; width, height, and publish_rate_hz must be positive");
+                "camera_index, width, and height must be non-negative; publish_rate_hz must be positive");
         }
 
         {
@@ -151,6 +151,8 @@ private:
 
     void capture_loop()
     {
+        int last_width = 0;
+        int last_height = 0;
         while (rclcpp::ok() && running_) {
             ros_camera::WebcamConfig config;
             bool reconfigure_requested;
@@ -173,9 +175,7 @@ private:
 
                 RCLCPP_INFO(
                     this->get_logger(),
-                    "Camera opened at %dx%d, %.1f Hz",
-                    capture_.actual_width(),
-                    capture_.actual_height(),
+                    "Camera opened; waiting for frames (reported capture rate %.1f Hz)",
                     capture_.actual_fps());
             }
 
@@ -185,6 +185,18 @@ private:
                 capture_.close();
                 wait_for_retry();
                 continue;
+            }
+
+            const int width = capture_.actual_width();
+            const int height = capture_.actual_height();
+            if (width != last_width || height != last_height) {
+                RCLCPP_INFO(
+                    this->get_logger(),
+                    "Camera frame dimensions: %dx%d",
+                    width,
+                    height);
+                last_width = width;
+                last_height = height;
             }
 
             publish_frame(frame);

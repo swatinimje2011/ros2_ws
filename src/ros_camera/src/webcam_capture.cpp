@@ -14,8 +14,12 @@ bool WebcamCapture::open(const WebcamConfig & config)
         }
     }
 
-    capture_.set(cv::CAP_PROP_FRAME_WIDTH, config.width);
-    capture_.set(cv::CAP_PROP_FRAME_HEIGHT, config.height);
+    if (config.width > 0) {
+        capture_.set(cv::CAP_PROP_FRAME_WIDTH, config.width);
+    }
+    if (config.height > 0) {
+        capture_.set(cv::CAP_PROP_FRAME_HEIGHT, config.height);
+    }
     capture_.set(cv::CAP_PROP_FPS, config.fps);
     capture_.set(cv::CAP_PROP_BUFFERSIZE, 1);
     return capture_.isOpened();
@@ -23,12 +27,20 @@ bool WebcamCapture::open(const WebcamConfig & config)
 
 bool WebcamCapture::read(cv::Mat & frame)
 {
-    return capture_.isOpened() && capture_.read(frame) && !frame.empty();
+    if (!capture_.isOpened() || !capture_.read(frame) || frame.empty()) {
+        return false;
+    }
+
+    actual_width_.store(frame.cols);
+    actual_height_.store(frame.rows);
+    return true;
 }
 
 void WebcamCapture::close()
 {
     capture_.release();
+    actual_width_.store(0);
+    actual_height_.store(0);
 }
 
 bool WebcamCapture::is_open() const
@@ -38,12 +50,12 @@ bool WebcamCapture::is_open() const
 
 int WebcamCapture::actual_width() const
 {
-    return static_cast<int>(capture_.get(cv::CAP_PROP_FRAME_WIDTH));
+    return actual_width_.load();
 }
 
 int WebcamCapture::actual_height() const
 {
-    return static_cast<int>(capture_.get(cv::CAP_PROP_FRAME_HEIGHT));
+    return actual_height_.load();
 }
 
 double WebcamCapture::actual_fps() const

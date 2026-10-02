@@ -9,7 +9,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rcl_interfaces REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core videoio)
+find_package(OpenCV REQUIRED COMPONENTS core highgui videoio)
 find_package(sensor_msgs REQUIRED)
 
 add_executable(camera_node
@@ -48,6 +48,20 @@ target_link_libraries(image_publisher
   webcam_capture
 )
 
+add_executable(image_viewer
+  src/image_viewer.cpp
+)
+
+ament_target_dependencies(image_viewer
+  cv_bridge
+  rclcpp
+  sensor_msgs
+)
+
+target_link_libraries(image_viewer
+  ${OpenCV_LIBS}
+)
+
 add_executable(image_subscriber
   src/image_subscriber.cpp
 )
@@ -61,6 +75,7 @@ install(TARGETS
   webcam_capture
   camera_node
   image_publisher
+  image_viewer
   image_subscriber
   DESTINATION lib/${PROJECT_NAME}
 )
